@@ -1,0 +1,235 @@
+---
+title: 'Project 1: Exploratory Data Analysis'
+author: "SDS348 Fall 2019"
+date: "9/16/2019"
+output:
+  html_document:
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+  pdf_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data Wrangling and Data Exploration
+
+
+#### 0. Introduction (4  pts)
+```{R}
+# The data I have chosen is about Alcohol Consuption per Capita in various countries and the number of births in the United States. The alcohol data contains country name, year, and estimated alcohol per capita consumption for adults over 15 in liters of alcohol. The Birth data contains the number of births dating from 1968 to 1988 including date, number of birthdays, year, month, day of year, day of month, and day of week, and which weekday it was. I chose this data set becuase I wondered if there was a correlation between alcohol and birth rates. These data sets were aquired through the websites :http://www.mechanicalkern.com/static/birthdates-1968-1988.csv and http://www.gapminder.org/data/. It interested me to learn about which countries have lower consuption rates of alcohol and which months had the highest birth rates. I thought increased birthrates would correlate with an increase alcohol consuption. 
+```
+
+
+#### 1. Tidying: Rearranging Wide/Long (8 pts)
+```{R}
+ library(readr)
+library(dplyr)
+Births <- read_csv("~/Births.csv")
+View(Births)
+Births <- read_csv("~/Births.csv")
+ Alcohol <- read_csv("~/Alcohol.csv")
+ Alcohol<-select(Alcohol, -c(1,2))
+ Births<-select(Births, -c(1,6,7,8,9))
+
+#The alcohol data contained extra columns that were not labeled, so I removed those to tidy the data. I also tidyed the data by removing columns in the Birth dataset since the day of month, day or year, and day of week were redundant since the date column already included this data.
+```
+
+#### 2. Joining/Merging (8 pts)
+```{R}
+ 
+ library(dplyr)
+
+ library(tidyr)
+
+ inn<-inner_join(Births,Alcohol, by="year")
+ 
+ nrow(inn)-nrow(Alcohol)-nrow(Births)
+#[1] -6255
+
+#An inner join was used to combine the datasts birth and alcohol by year. This took away 6255 cases, which was calculated by using nrow() and subtraction to see how many rows were lost. The only problem with the inner join is that some countries were dropped in the join. I chose this join so it would remove years that were not in common to prevent NAs.
+```
+
+#### 3. Wrangling (40 pts)
+```{R}
+ library(tidyr)
+dip<-inn%>%group_by(country)%>%filter(country=="Russia")%>%select(date,wday,year,country,alcohol,births)%>%arrange(desc(births))%>%mutate(percent=100*births/1525273)
+ head(dip)
+# A tibble: 6 x 7
+# Groups:   country [1]
+ # date  wday   year country alcohol births
+#  <chr> <chr> <dbl> <chr>     <dbl>  <dbl>
+#1 9/20~ Tue    1988 Russia     11.6  12851
+#2 7/7/~ Thu    1988 Russia     11.6  12727
+#3 9/23~ Fri    1988 Russia     11.6  12694
+#4 9/9/~ Fri    1988 Russia     11.6  12661
+#5 9/16~ Fri    1988 Russia     11.6  12620
+#6 9/22~ Thu    1988 Russia     11.6  12554
+# ... with 1 more variable: percent <dbl>
+  max(dip$alcohol)
+#[1] 13.31
+ min(dip$alcohol)
+#[1] 10.77
+ sd(dip$alcohol)
+#[1] 1.00156
+ max(dip$births)
+#[1] 12851
+ min(dip$births)
+#[1] 7835
+ sd(dip$births)
+#[1] 1182.512
+ max(dip$year)
+#[1] 1988
+ min(dip$year)
+#[1] 1985
+ sd(dip$year)
+#[1] 1.118723
+ n_distinct(dip$alcohol)
+#[1] 4
+ n_distinct(dip$year)
+##[1] 4
+ n_distinct(dip$births)
+#[1] 1191
+ 
+ dip%>%group_by(year)%>%summarise(max(births))
+# A tibble: 4 x 2
+ #  year `max(births)`
+#  <dbl>         <dbl>
+#1  1985         12396
+#2  1986         12412
+#3  1987         12351
+#4  1988         12851
+ dip%>%group_by(wday)%>%summarise(mean(births))
+# A tibble: 7 x 2
+ # wday  `mean(births)`
+#  <chr>          <dbl>
+#1 Fri           11148.
+#2 Mon           10836.
+#3 Sat            9054.
+#4 Sun            8626.
+#5 Thu           10999.
+#6 Tue           11362.
+#7 Wed           11047.
+  dip%>%group_by(wday)%>%summarise(sd(births))
+# A tibble: 7 x 2
+#  wday  `sd(births)`
+#  <chr>        <dbl>
+#1 Fri           670.
+#2 Mon           635.
+#3 Sat           399.
+#4 Sun           363.
+#5 Thu           752.
+#6 Tue           557.
+#7 Wed           613.
+ dip%>%group_by(year)%>%summarise(max(alcohol))
+# A tibble: 4 x 2
+#   year `max(alcohol)`
+#  <dbl>          <dbl>
+#1  1985           13.3
+#2  1986           10.8
+#3  1987           11.0
+#4  1988           11.6
+ dip%>%group_by(year)%>%summarise(min(alcohol))
+# A tibble: 4 x 2
+#   year `min(alcohol)`
+#  <dbl>          <dbl>
+#1  1985           13.3
+##2  1986           10.8
+#3  1987           11.0
+#4  1988           11.6
+ dip%>%group_by(year)%>%summarise(mean(alcohol))
+# A tibble: 4 x 2
+#   year `mean(alcohol)`
+#  <dbl>           <dbl>
+#1  1985            13.3
+#2  1986            10.8
+#3  1987            11.0
+#4  1988            11.6
+ dip%>%group_by(year)%>%summarise(sd(alcohol))
+# A tibble: 4 x 2
+#   year `sd(alcohol)`
+#  <dbl>         <dbl>
+#1  1985             0
+#2  1986             0
+#3  1987             0
+#4  1988             0
+ dip%>%group_by(dip$country)%>%group_by(wday)%>%summarise(max(alcohol))
+# A tibble: 7 x 2
+ # wday  `max(alcohol)`
+#  <chr>          <dbl>
+#1 Fri             13.3
+#2 Mon             13.3
+#3 Sat             13.3
+#4 Sun             13.3
+#5 Thu             13.3
+#6 Tue             13.3
+#7 Wed             13.3
+ cor(dip$births,dip$alcohol)
+#[1] -0.02365281
+#The highest liters of alcohol consumed pThe highest liters of alcohol consumed #per capita in Russia is 13.31L while the minimum is 10.77L. The stadard deviation of alcohol consumption per capita is 1.00156. For births, the maximum births in one day was 12851 which occured in 1988, and on average Tuesdays had the most births. Thursdays had the largest standard deviation for births. In 1985 there was the highest alcohol consumption per capita at 13.3L. The correlation between births and alcohol is -0.02365281.
+```
+
+
+
+#### 4. Visualizing (30 pts)
+
+```{r}
+library(tidyverse)
+ggplot(data = dip, aes(x= year, y=births, color=alcohol))+geom_point(size=.5)+ggtitle("Birthrates and Alcohol Consumption by Year")+ylab("Births")+xlab("Year")+ theme_classic()+theme(axis.text.x = element_text(color = "blue"),axis.text.y = element_text(color = "blue"))
+    
+ggplot(data = dip, aes(x= alcohol, y=births, color=year))+geom_point(size=.5)+ggtitle("Birthrates and Alcohol Consumption by Year")+ylab("Births")+xlab("Alcohol")+theme_minimal()+scale_y_continuous(breaks = c(8000,8500,9000,9500,10000,11000,11500,12000))+theme(axis.text.x = element_text(color = "blue"),axis.text.y = element_text(color = "blue"))
+ ggplot(data = dip, aes(x= alcohol, y=births, color=year))+geom_point(size=.5)+stat_summary(geom = "point", fun.y = "mean", colour = "red")+ggtitle("Birthrates and Alcohol Consumption by Year")+ylab("Births")+xlab("Alcohol")+theme_minimal()+scale_y_continuous(breaks = c(8000,8500,9000,9500,10000,11000,11500,12000))+theme(axis.text.x = element_text(color = "blue"))+scale_color_gradient(low = "yellow",high="red")
+  #The graphs indicate that 1985 had the highest alcohol consumption and less in the following year. The graphs also indicate that there are more births as the years increase. The stat summary function indicates that the means are between 10000  and 11000 births.
+ 
+ 
+ 
+
+```
+
+    
+#### 5. Dimensionality Reduction (20 pts) 
+```{R}
+ 
+
+  inn1<-inn
+  inn1<-inn1%>%select(-country,-wday,-date)
+  inn_nums<-inn1%>%select_if(is.numeric)%>%scale
+  pca1<-princomp(inn_nums)
+  summary(pca1, loadings=T)
+#Importance of components:
+ #                         Comp.1    Comp.2
+#Standard deviation     1.2563163 0.9947813
+#Proportion of Variance 0.5264706 0.3300892
+#Cumulative Proportion  0.5264706 0.8565598
+ #                         Comp.3
+#Standard deviation     0.6557637
+#Proportion of Variance 0.1434402
+#Cumulative Proportion  1.0000000
+
+#Loadings:
+ #       Comp.1 Comp.2 Comp.3
+#births   0.175  0.977  0.122
+#year     0.704        -0.710
+#alcohol -0.689  0.210 -0.694
+
+evi<-pca1$sdev^2
+
+varprop=round(evi/sum(evi),2)
+
+ggplot(inn, aes(x=births,y=alcohol))+geom_point()+geom_segment(aes(xend = alcohol, yend = births), lty=2)+geom_hline(yintercept=0,color="blue",lwd=1.5)+ geom_point(aes(y = 0), colour = "orange",size=3)+ggtitle("PCA graph for Alcohol and Births")
+
+
+#Birth rates and alcohol consumption do not have large positive associations. Unlike what was predicted. There are no clusters which indicates no high correlations in the data
+```
+
+
+...
+
+
+
+
+
